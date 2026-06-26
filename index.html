@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CinemaVault — Your movies. Offline. Always.</title>
+  <meta name="description" content="A premium offline-capable movie player PWA. Add streaming or video links and watch them with a custom cinematic player — no server required.">
+  <meta name="theme-color" content="#0a0a0f">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CinemaVault">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="preload" href="css/styles.css" as="style">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preload" href="movies.json" as="fetch" crossorigin>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- Hidden SVG filter powering the film-grain texture on the hero section -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise"></feTurbulence>
+      <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.05 0"></feColorMatrix>
+      <feComposite operator="over" in2="SourceGraphic"></feComposite>
+    </filter>
+  </svg>
+
+  <!-- PWA Install Banner -->
+  <div id="install-banner" class="install-banner hidden">
+    <p>Install CinemaVault for quick, offline access from your home screen.</p>
+    <div class="banner-actions">
+      <button type="button" class="btn btn-primary" id="btn-install">Install</button>
+      <button type="button" class="btn btn-ghost" id="btn-dismiss-install" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
+
+  <!-- App Shell -->
+  <div id="app" class="app">
+
+    <!-- Sidebar Nav (desktop) -->
+    <nav id="sidebar" class="sidebar" aria-label="Main navigation">
+      <div class="sidebar-logo">
+        <span class="logo-icon" aria-hidden="true">🎬</span>
+        <span class="logo-text">CinemaVault</span>
+      </div>
+      <ul class="nav-links">
+        <li data-view="home" class="active" role="button" tabindex="0">🏠 Home</li>
+        <li data-view="library" role="button" tabindex="0">🎞 Library</li>
+        <li data-view="continue" role="button" tabindex="0">▶ Continue Watching</li>
+        <li data-view="add" role="button" tabindex="0">＋ Add Movie</li>
+        <li data-view="settings" role="button" tabindex="0">⚙ Settings</li>
+      </ul>
+      <div class="sidebar-offline-indicator" id="offline-indicator">
+        <span class="dot" aria-hidden="true"></span> <span id="online-status">Online</span>
+      </div>
+    </nav>
+
+    <!-- Mobile top bar -->
+    <header class="topbar" id="topbar">
+      <button type="button" class="hamburger ctrl-btn" id="hamburger" aria-label="Open menu">☰</button>
+      <span class="topbar-logo">🎬 CinemaVault</span>
+      <span style="width:44px;" aria-hidden="true"></span>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="main-content" tabindex="-1">
+      <!-- Views are injected here by app.js -->
+      <div class="movie-grid">
+        <div class="skeleton-card"><div class="skeleton-poster"></div><div class="skeleton-line" style="width:70%"></div><div class="skeleton-line" style="width:40%"></div></div>
+        <div class="skeleton-card"><div class="skeleton-poster"></div><div class="skeleton-line" style="width:70%"></div><div class="skeleton-line" style="width:40%"></div></div>
+        <div class="skeleton-card"><div class="skeleton-poster"></div><div class="skeleton-line" style="width:70%"></div><div class="skeleton-line" style="width:40%"></div></div>
+        <div class="skeleton-card"><div class="skeleton-poster"></div><div class="skeleton-line" style="width:70%"></div><div class="skeleton-line" style="width:40%"></div></div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Mobile bottom nav (populated by app.js, mirrors the sidebar) -->
+  <nav id="bottom-nav" class="bottom-nav" aria-label="Bottom navigation"></nav>
+
+  <!-- Player Modal (fullscreen overlay) -->
+  <div id="player-modal" class="player-modal hidden" role="dialog" aria-modal="true" aria-label="Video player">
+    <div class="player-container">
+      <div id="player-wrapper"></div>
+
+      <!-- Custom Controls -->
+      <div class="player-controls" id="player-controls">
+        <div class="progress-bar-container">
+          <div class="progress-buffered" id="progress-buffered"></div>
+          <div class="progress-fill" id="progress-fill"></div>
+          <input type="range" id="progress-range" class="progress-range" min="0" max="100" value="0" aria-label="Seek">
+        </div>
+        <div class="controls-row">
+          <div class="controls-left">
+            <button id="btn-play" class="ctrl-btn" aria-label="Play/Pause">▶</button>
+            <button id="btn-rewind" class="ctrl-btn" aria-label="Rewind 10 seconds">⏪</button>
+            <button id="btn-forward" class="ctrl-btn" aria-label="Forward 30 seconds">⏩</button>
+            <div class="volume-group">
+              <button id="btn-mute" class="ctrl-btn" aria-label="Mute">🔊</button>
+              <input type="range" id="volume-range" min="0" max="1" step="0.05" value="1" class="volume-slider" aria-label="Volume">
+            </div>
+            <span id="time-display" class="time-display">0:00 / 0:00</span>
+          </div>
+          <div class="controls-right">
+            <button id="btn-speed" class="ctrl-btn" aria-label="Playback speed">1×</button>
+            <button id="btn-pip" class="ctrl-btn" aria-label="Picture in Picture">⧉</button>
+            <button id="btn-fullscreen" class="ctrl-btn" aria-label="Fullscreen">⛶</button>
+            <button id="btn-close-player" class="ctrl-btn ctrl-close" aria-label="Close player">✕</button>
+          </div>
+        </div>
+        <!-- Now Playing info bar -->
+        <div class="now-playing-bar">
+          <span id="now-playing-title">Title</span>
+          <span id="now-playing-meta">Year · Genre</span>
+        </div>
+      </div>
+
+      <!-- Skip intro button (shown contextually for the first ~90s of longer movies) -->
+      <button id="btn-skip" class="skip-btn hidden" type="button">Skip Intro +85s</button>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Add Movie Modal (content injected by app.js) -->
+  <div id="add-modal" class="modal hidden" role="dialog" aria-modal="true"></div>
+
+  <!-- Movie Detail Modal (content injected by library.js) -->
+  <div id="detail-modal" class="modal hidden" role="dialog" aria-modal="true"></div>
+
+  <!-- Scripts -->
+  <script src="js/storage.js"></script>
+  <script src="js/library.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/pwa.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

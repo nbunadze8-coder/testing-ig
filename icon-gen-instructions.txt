@@ -1,0 +1,68 @@
+CinemaVault — Icon Generation Instructions
+============================================
+
+manifest.json expects two PNG icons:
+  icons/icon-192.png  (192×192)
+  icons/icon-512.png  (512×512)
+
+Both are flagged "purpose": "any maskable", so the artwork needs a safe zone
+(see the note at the bottom) and should look good whether the OS shows it as
+a square, circle, squircle, or anything else.
+
+--------------------------------------------------------------------
+1. THE SOURCE SVG
+--------------------------------------------------------------------
+Save the block below as icon.svg. It's a simple red clapperboard on the
+CinemaVault dark background — clean, bold, and legible at small sizes.
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0a0a0f"/>
+  <rect x="96" y="226" width="320" height="210" rx="16" fill="#15151f" stroke="#e50914" stroke-width="6"/>
+  <path d="M96 226 L416 226 L416 162 L96 200 Z" fill="#e50914"/>
+  <g stroke="#0a0a0f" stroke-width="16">
+    <line x1="148" y1="216" x2="178" y2="168"/>
+    <line x1="208" y1="209" x2="238" y2="161"/>
+    <line x1="268" y1="202" x2="298" y2="154"/>
+    <line x1="328" y1="195" x2="358" y2="147"/>
+  </g>
+  <path d="M232 290 L232 372 L304 331 Z" fill="#e50914"/>
+</svg>
+
+--------------------------------------------------------------------
+2. CONVERTING SVG → PNG
+--------------------------------------------------------------------
+
+Option A — rsvg-convert (Linux / macOS via Homebrew)
+  brew install librsvg          # macOS, skip if already installed
+  # or: sudo apt install librsvg2-bin   # Debian/Ubuntu
+
+  rsvg-convert -w 192 -h 192 icon.svg -o icons/icon-192.png
+  rsvg-convert -w 512 -h 512 icon.svg -o icons/icon-512.png
+
+Option B — Inkscape CLI (Linux / macOS / Windows)
+  inkscape icon.svg --export-type=png --export-filename=icons/icon-192.png -w 192 -h 192
+  inkscape icon.svg --export-type=png --export-filename=icons/icon-512.png -w 512 -h 512
+
+Option C — Free online converters (no install needed)
+  https://svgtopng.com         — upload icon.svg, export at 192×192 and 512×512
+  https://favicon.io           — also generates a full favicon set if you want one
+
+Save the two exported PNGs into the icons/ folder using exactly these names:
+  icons/icon-192.png
+  icons/icon-512.png
+
+--------------------------------------------------------------------
+3. MASKABLE ICON SAFE ZONE
+--------------------------------------------------------------------
+Android (and some other platforms) crop maskable icons into a circle,
+squircle, rounded square, or other shape — anything outside the center
+80% of the canvas may get clipped.
+
+For a 512×512 icon, that means: keep all essential artwork (the
+clapperboard shape above) within roughly the center 410×410px, leaving
+~51px of padding on every side. The SVG above already keeps its shape
+comfortably inside that zone, so it should survive any mask shape cleanly.
+
+You can preview how an icon will be masked at:
+  https://maskable.app   — drag your exported PNG in and check it against
+  the circle/squircle/rounded-square previews before shipping it.
